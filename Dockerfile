@@ -1,15 +1,23 @@
+FROM 331139610421.dkr.ecr.us-west-2.amazonaws.com/prebid-server-java:openjdk17-base AS build
+
+COPY . .
+
+RUN mvn clean package -U -Dmaven.test.skip=true
+
+
 FROM amazoncorretto:17
 
 WORKDIR /app/prebid-server
 
-VOLUME /app/prebid-server/conf
-VOLUME /app/prebid-server/data
+RUN yum install -y shadow-utils && \
+        yum clean all && \
+        useradd prebid && \
+        mkdir /logs && \
+        chown -R prebid /app/prebid-server /logs
 
-COPY src/main/docker/run.sh ./
-COPY src/main/docker/application.yaml ./
-COPY target/prebid-server.jar ./
+USER prebid
 
-EXPOSE 8080
-EXPOSE 8060
+COPY --from=build /opt/conf/. ./conf/
+COPY --from=build /opt/target/prebid-server.jar ./
 
-ENTRYPOINT [ "/app/prebid-server/run.sh" ]
+ENTRYPOINT [ "/app/prebid-server/conf/run.sh" ]

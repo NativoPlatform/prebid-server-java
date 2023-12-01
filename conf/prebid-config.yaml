@@ -1,0 +1,41 @@
+status-response: "ok"
+adapters:
+  appnexus:
+    enabled: true
+  ix:
+    enabled: true
+  openx:
+    enabled: true
+  pubmatic:
+    enabled: true
+  rubicon:
+    enabled: true
+metrics:
+  prefix: prebid
+cache:
+  scheme: http
+  host: localhost
+  path: /cache
+  query: uuid=
+settings:
+  enforce-valid-account: false
+  generate-storedrequest-bidrequest-id: true
+  filesystem:
+    settings-filename: conf/app-settings.yaml
+    stored-requests-dir: conf/stored
+    stored-imps-dir: conf/stored
+    stored-responses-dir: conf/stored
+    categories-dir:
+gdpr:
+  default-value: 1
+  vendorlist:
+    v2:
+      cache-dir: /app/prebid-server/data/vendorlist-v2
+    v3:
+      cache-dir: /app/prebid-server/data/vendorlist-v3
+admin-endpoints:
+  logging-changelevel:
+    enabled: true
+    path: /logging/changelevel
+    on-application-port: true
+    protected: false

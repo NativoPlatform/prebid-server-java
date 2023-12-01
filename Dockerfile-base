@@ -1,0 +1,7 @@
+# ECR: 331139610421.dkr.ecr.us-west-2.amazonaws.com/prebid-server-java:openjdk17-base
+FROM openjdk:17-jdk-slim
+
+WORKDIR /opt
+
+RUN apt-get update && apt-get install -y \
+    maven
