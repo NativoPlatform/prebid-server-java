@@ -7,29 +7,28 @@
           "id": "bid_id",
           "impid": "imp_id",
           "price": 3.33,
-          "adm": "adm001",
-          "adid": "adid",
-          "cid": "cid",
-          "crid": "crid",
+          "adid": "adid001",
+          "adm": "<VAST version=\"3.0\"></VAST>",
+          "cid": "cid001",
+          "crid": "crid001",
           "w": 300,
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "video"
             },
-            "origbidcpm": 3.33,
-            "mediatype": "banner"
+            "origbidcpm": 3.33
           }
         }
       ],
-      "seat": "yieldmo",
+      "seat": "liftoff",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "yieldmo": "{{ yieldmo.response_time_ms }}"
+      "liftoff": "{{ liftoff.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0
