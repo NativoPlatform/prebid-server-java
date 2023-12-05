@@ -26,7 +26,7 @@ pipeline {
                     vars.helm_chart = "prebid-server-java"
 
 					vars.app_name = "prebid-server-java"
-                    vars.docker_tag = "${env.BUILD_ID}-${env.GIT_BRANCH}-${env.GIT_COMMIT.take(7)}"
+                    vars.docker_tag = "${vars.app_name}-${env.BUILD_ID}-${env.GIT_BRANCH}-${env.GIT_COMMIT.take(7)}"
 					vars.branch = "${env.GIT_BRANCH}"
 
 					if ("${vars.branch}".contains("origin")) {
@@ -92,7 +92,7 @@ pipeline {
                             exit 1;
 						fi
 						"""
-						}
+					}
 				}
 			}
 		}
