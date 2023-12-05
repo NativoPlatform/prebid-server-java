@@ -2,7 +2,7 @@ FROM 331139610421.dkr.ecr.us-west-2.amazonaws.com/prebid-server-java:openjdk17-b
 
 COPY . .
 
-RUN mvn clean package -U -Dmaven.test.skip=true
+RUN mvn clean package
 
 
 FROM amazoncorretto:17

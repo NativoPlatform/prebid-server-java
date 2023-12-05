@@ -1,0 +1,100 @@
+def vars = [:]
+
+pipeline {
+	agent any
+	options {
+			buildDiscarder(logRotator(numToKeepStr:"5"))
+			timeout(time: 30, unit: 'MINUTES')
+			disableConcurrentBuilds()
+	}
+	stages {
+	  	stage('Prepping') {
+			steps {
+				script {
+                    vars.env = "qa"
+					vars.env_cluster = ['qa': 'preprod_eks_c5']
+					vars.env_cluster_urls = ['preprod_eks_c5': 'https://6E6EEEABA1FC33BDF9EFE3A1E571B7A3.gr7.us-west-2.eks.amazonaws.com']
+
+                    vars.ecr_creds = "ecr:us-west-2:docker-aws"
+					vars.ecr_registry = "https://331139610421.dkr.ecr.us-west-2.amazonaws.com"
+					vars.ecr_repo = "331139610421.dkr.ecr.us-west-2.amazonaws.com/prebid-server-java"
+
+                    vars.github_creds = "ntv-devopsbot-personal-access-token"
+                    vars.github_repo = "https://github.com/NativoPlatform/prebid-server-java.git"
+					vars.helm_repo = "https://github.com/NativoPlatform/helm-charts.git"
+					vars.helm_repo_branch = "prebid-server-java"
+                    vars.helm_chart = "prebid-server-java"
+
+					vars.app_name = "prebid-server-java"
+                    vars.docker_tag = "${vars.app_name}-${env.BUILD_ID}-${env.GIT_BRANCH}-${env.GIT_COMMIT.take(7)}"
+					vars.branch = "${env.GIT_BRANCH}"
+
+					if ("${vars.branch}".contains("origin")) {
+						vars.branch = "${vars.branch}".split('/')
+					}
+
+					if (vars.env_cluster["${vars.env}"]) {
+						vars.k8s_cluster = vars.env_cluster["${vars.env}"]
+						vars.k8s_cluster_url = vars.env_cluster_urls["${vars.k8s_cluster}"]
+						vars.k8s_creds = "${vars.k8s_cluster}_deployment_user"
+					} else {
+						echo "Deployment from the branch is not supported: Contact DevOps"
+						vars.env = null
+					}
+
+					if (vars) {
+						echo "List of all variables: ${vars}"
+					}
+
+					git branch: "${env.GIT_BRANCH}", url: "${vars.github_repo}", credentialsId: "${vars.github_creds}"
+				}
+			}
+		}
+
+		stage('Build & Publish Docker Image') {
+			when {
+				expression { return vars.env }
+			}
+
+			steps {
+				script {
+					docker.withRegistry("${vars.ecr_registry}", "${vars.ecr_creds}") {
+						def dockerfile = 'Dockerfile'
+						def extraArgs = ''
+						def buildContext = '.'
+						def image = docker.build("${vars.ecr_repo}:${vars.docker_tag}", "--file ${dockerfile} ${extraArgs} ${buildContext}") 
+						image.push()
+					}
+				}
+			}
+		}
+
+		stage('Helm Deploy') {
+			when {
+				expression { return vars.k8s_creds }
+			}
+
+			steps {
+				script {
+					git branch: "${vars.helm_repo_branch}", url: "${vars.helm_repo}", credentialsId: "${vars.github_creds}"
+					withKubeCredentials([[credentialsId: "${vars.k8s_creds}",
+						serverUrl: "${vars.k8s_cluster_url}"
+						]]) {
+						sh """
+						if helm upgrade --install --wait --timeout 20m $vars.app_name \
+										-n $vars.env-$vars.app_name \
+										-f "${vars.helm_chart}/overrides/${vars.env}-${vars.app_name}.yaml" \
+										--set image.tag="${vars.docker_tag}" \
+										$vars.helm_chart/; then
+							echo \"Deployment successful\";
+						else
+							echo \"Failed to deploy\";
+                            exit 1;
+						fi
+						"""
+					}
+				}
+			}
+		}
+	}
+}
