@@ -11,8 +11,7 @@ pipeline {
 	  	stage('Prepping') {
 			steps {
 				script {
-                    vars.env = "qa"
-					vars.env_cluster = ['qa': 'preprod_eks_c5']
+					vars.env_cluster = ['qa': 'preprod_eks_c5', 'dev': 'preprod_eks_c5']
 					vars.env_cluster_urls = ['preprod_eks_c5': 'https://6E6EEEABA1FC33BDF9EFE3A1E571B7A3.gr7.us-west-2.eks.amazonaws.com']
 
                     vars.ecr_creds = "ecr:us-west-2:docker-aws"
@@ -26,34 +25,44 @@ pipeline {
                     vars.helm_chart = "prebid-server-java"
 
 					vars.app_name = "prebid-server-java"
-                    vars.docker_tag = "${vars.app_name}-${env.BUILD_ID}-${env.GIT_BRANCH}-${env.GIT_COMMIT.take(7)}"
-					vars.branch = "${env.GIT_BRANCH}"
-
-					if ("${vars.branch}".contains("origin")) {
-						vars.branch = "${vars.branch}".split('/')
-					}
+                    vars.docker_tag = "${vars.app_name}-${env.GIT_BRANCH}-${env.BUILD_ID}-${env.GIT_COMMIT.take(7)}"
+					vars.env = (env.GIT_BRANCH ==~ /release.*/) ? "qa" : "dev"
 
 					if (vars.env_cluster["${vars.env}"]) {
 						vars.k8s_cluster = vars.env_cluster["${vars.env}"]
 						vars.k8s_cluster_url = vars.env_cluster_urls["${vars.k8s_cluster}"]
 						vars.k8s_creds = "${vars.k8s_cluster}_deployment_user"
-					} else {
-						echo "Deployment from the branch is not supported: Contact DevOps"
-						vars.env = null
 					}
 
-					if (vars) {
-						echo "List of all variables: ${vars}"
-					}
+					echo "List of all variables: ${vars}"
 
 					git branch: "${env.GIT_BRANCH}", url: "${vars.github_repo}", credentialsId: "${vars.github_creds}"
 				}
 			}
 		}
 
+		stage('Tests') {
+			agent {
+				docker {
+					image '331139610421.dkr.ecr.us-west-2.amazonaws.com/prebid-server-java:openjdk17-base'
+					registryUrl 'https://331139610421.dkr.ecr.us-west-2.amazonaws.com'
+					registryCredentialsId 'ecr:us-west-2:docker-aws'
+                    reuseNode true
+				}
+			}
+
+			steps {
+				script {
+					sh """
+						mvn clean test
+					"""
+				}
+			}
+		}
+
 		stage('Build & Publish Docker Image') {
 			when {
-				expression { return vars.env }
+				expression { env.GIT_BRANCH ==~ /(release.*)|(develop)/ }
 			}
 
 			steps {
@@ -62,7 +71,7 @@ pipeline {
 						def dockerfile = 'Dockerfile'
 						def extraArgs = ''
 						def buildContext = '.'
-						def image = docker.build("${vars.ecr_repo}:${vars.docker_tag}", "--file ${dockerfile} ${extraArgs} ${buildContext}") 
+						def image = docker.build("${vars.ecr_repo}:${vars.docker_tag}", "--file ${dockerfile} ${extraArgs} ${buildContext}")
 						image.push()
 					}
 				}
@@ -71,7 +80,7 @@ pipeline {
 
 		stage('Helm Deploy') {
 			when {
-				expression { return vars.k8s_creds }
+				expression { env.GIT_BRANCH ==~ /(release.*)|(develop)/ }
 			}
 
 			steps {
