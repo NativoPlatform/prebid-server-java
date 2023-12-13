@@ -96,6 +96,7 @@ import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountAuctionEventConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
+import org.prebid.server.settings.model.AccountTargetingConfig;
 import org.prebid.server.settings.model.VideoStoredDataResult;
 import org.prebid.server.util.LineItemUtil;
 import org.prebid.server.util.StreamUtil;
@@ -1373,7 +1374,7 @@ public class BidResponseCreator {
 
         final Map<String, String> targetingKeywords;
         final String bidderCode = targetingInfo.getBidderCode();
-        if (targeting != null && targetingInfo.isTargetingEnabled() && targetingInfo.isBidderWinningBid()) {
+        if (shouldIncludeTargetingInResponse(targeting, bidInfo.getTargetingInfo())) {
             final TargetingKeywordsCreator keywordsCreator = resolveKeywordsCreator(
                     bidType, targeting, isApp, bidRequest, account);
 
@@ -1415,6 +1416,15 @@ public class BidResponseCreator {
                 .ext(updatedBidExt)
                 .exp(ttl)
                 .build();
+    }
+
+    private boolean shouldIncludeTargetingInResponse(ExtRequestTargeting targeting, TargetingInfo targetingInfo) {
+        return targeting != null
+                && targetingInfo.isTargetingEnabled()
+                && targetingInfo.isBidderWinningBid()
+                && (Objects.equals(targeting.getIncludebidderkeys(), true)
+                || Objects.equals(targeting.getIncludewinners(), true)
+                || Objects.equals(targeting.getIncludeformat(), true));
     }
 
     private JsonNode extractPassThrough(Imp imp) {
@@ -1658,7 +1668,8 @@ public class BidResponseCreator {
                                                            JsonNode priceGranularity,
                                                            BidRequest bidRequest,
                                                            Account account) {
-
+        final int resolvedTruncateAttrChars = resolveTruncateAttrChars(targeting, account);
+        final String resolveKeyPrefix = resolveKeyPrefix(bidRequest, account, resolvedTruncateAttrChars);
         return TargetingKeywordsCreator.create(
                 parsePriceGranularity(priceGranularity),
                 BooleanUtils.toBoolean(targeting.getIncludewinners()),
@@ -1666,10 +1677,11 @@ public class BidResponseCreator {
                 BooleanUtils.toBoolean(targeting.getAlwaysincludedeals()),
                 BooleanUtils.isTrue(targeting.getIncludeformat()),
                 isApp,
-                resolveTruncateAttrChars(targeting, account),
+                resolvedTruncateAttrChars,
                 cacheHost,
                 cachePath,
-                TargetingKeywordsResolver.create(bidRequest, mapper));
+                TargetingKeywordsResolver.create(bidRequest, mapper),
+                resolveKeyPrefix);
     }
 
     /**
@@ -1684,6 +1696,26 @@ public class BidResponseCreator {
                 truncateAttrCharsOrNull(targeting.getTruncateattrchars()),
                 truncateAttrCharsOrNull(accountTruncateTargetAttr),
                 truncateAttrChars);
+    }
+
+    /**
+     * Returns targeting key prefix.
+     * Default prefix for targeting keys used in cases,
+     * when correspond value is missing in account auction configuration or bid request ext,
+     * or may compose keys longer than 'settings.targeting.truncate-attr-chars' value.
+     */
+    private static String resolveKeyPrefix(BidRequest bidRequest, Account account, int truncateAttrChars) {
+        final String prefix = Optional.of(bidRequest)
+                .map(BidRequest::getExt)
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getTargeting)
+                .map(ExtRequestTargeting::getPrefix)
+                .orElse(Optional.ofNullable(account)
+                        .map(Account::getAuction)
+                        .map(AccountAuctionConfig::getTargeting)
+                        .map(AccountTargetingConfig::getPrefix)
+                        .orElse(null));
+        return StringUtils.isNotEmpty(prefix) && prefix.length() + 11 < truncateAttrChars ? prefix : "hb";
     }
 
     private static Integer truncateAttrCharsOrNull(Integer value) {
