@@ -47,8 +47,8 @@ adapters:
             support-cors: false
             uid-macro: '$AUID'
       nativo:
-        enabled: false
-        endpoint: https://exchange.postrelease.com/esi?ntv_epid=7
+        enabled: true
+        endpoint: https://qa.jadserve.postrelease.com/esi?ntv_epid=7
         pbs-enforces-ccpa: false
         meta-info:
           maintainer-email: prebiddev@nativo.com
