@@ -1135,6 +1135,7 @@ public class ExchangeService {
      */
     private Source prepareSource(String bidder, BidRequest bidRequest, boolean transmitTid) {
         final Source receivedSource = bidRequest.getSource();
+
         final SupplyChain bidderSchain = supplyChainResolver.resolveForBidder(bidder, bidRequest);
 
         if (bidderSchain == null && transmitTid) {
@@ -1144,9 +1145,8 @@ public class ExchangeService {
         return receivedSource == null
                 ? Source.builder().schain(bidderSchain).build()
                 : receivedSource.toBuilder()
-                .schain(bidderSchain)
-                .tid(transmitTid ? receivedSource.getTid() : null)
-                .build();
+                .schain(bidderSchain != null ? bidderSchain : receivedSource.getSchain())
+                .tid(transmitTid ? receivedSource.getTid() : null).build();
     }
 
     /**
@@ -1744,7 +1744,7 @@ public class ExchangeService {
             case failed_to_request_bids -> MetricName.failedtorequestbids;
             case timeout -> MetricName.timeout;
             case invalid_bid -> MetricName.bid_validation;
-            case rejected_ipf, generic -> MetricName.unknown_error;
+            case rejected_ipf, generic, invalid_creative -> MetricName.unknown_error;
         };
     }
 
