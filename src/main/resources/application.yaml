@@ -18,7 +18,7 @@ server:
     server-instances: 1
   http:
     enabled: true
-    port: 8080
+    port: 8085 # do not merge this change to release branches or master
     server-instances: 1
   cpu-load-monitoring:
     enabled: false
