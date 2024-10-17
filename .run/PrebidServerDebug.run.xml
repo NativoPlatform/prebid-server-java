@@ -1,0 +1,17 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="PrebidServerDebug" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <additionalParameters>
+      <param>
+        <option name="enabled" value="true" />
+        <option name="name" value="spring.config.additional-location" />
+        <option name="value" value="./sample/prebid-config.yaml" />
+      </param>
+    </additionalParameters>
+    <module name="prebid-server" />
+    <option name="PROGRAM_PARAMETERS" value="clean package -DskipUnitTests=true --file=extra/pom.xml" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="org.prebid.server.Application" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
