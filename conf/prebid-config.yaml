@@ -23,7 +23,7 @@ settings:
   filesystem:
     settings-filename: conf/app-settings.yaml
     stored-requests-dir: conf/stored
-    stored-imps-dir: conf/stored
+    stored-imps-dir: conf/stored/imps
     stored-responses-dir: conf/stored
     categories-dir:
 gdpr:
