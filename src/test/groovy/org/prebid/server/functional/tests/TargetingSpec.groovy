@@ -19,6 +19,8 @@ import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.IgnoreRest
+import spock.lang.RepeatUntilFailure
 
 import java.math.RoundingMode
 

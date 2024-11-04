@@ -10,8 +10,7 @@ enum ActivityType {
     REPORT_ANALYTICS("reportAnalytics"),
     TRANSMIT_UFPD("transmitUfpd"),
     TRANSMIT_PRECISE_GEO("transmitPreciseGeo"),
-    TRANSMIT_TID("transmitTid"),
-    TRANSMIT_EIDS("transmitEids")
+    TRANSMIT_TID("transmitTid")
 
     @JsonValue
     final String value

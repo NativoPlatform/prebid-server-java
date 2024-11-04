@@ -11,7 +11,6 @@ class Data {
     String id
     String name
     List<Segment> segment
-    ExtData ext
 
     static Data getDefaultData() {
         new Data().tap {

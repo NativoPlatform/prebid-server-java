@@ -12,9 +12,10 @@ import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.settings.model.SpecialFeature;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -68,18 +69,19 @@ public class SpecialFeaturesOneStrategyTest {
         // given
         final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b1", PrivacyEnforcementAction.restrictAll());
-        final List<VendorPermission> vendorPermissions = asList(vendorPermission1, vendorPermission2);
+        final List<VendorPermission> vendorPermissions = Arrays.asList(vendorPermission1, vendorPermission2);
 
         final SpecialFeature specialFeature = SpecialFeature.of(false, emptyList());
 
         // when
-        target.processSpecialFeaturesStrategy(tcString, specialFeature, vendorPermissions);
+        final Collection<VendorPermission> result = target.processSpecialFeaturesStrategy(tcString, specialFeature,
+                vendorPermissions);
 
         // then
         final VendorPermission vendorPermission1Changed = VendorPermission.of(1, null, allowSpecialFeature());
         final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b1", allowSpecialFeature());
-        assertThat(vendorPermission1).isEqualTo(vendorPermission1Changed);
-        assertThat(vendorPermission2).isEqualTo(vendorPermission2Changed);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission1Changed,
+                vendorPermission2Changed);
 
         verifyNoInteractions(specialFeatureOptIns);
     }
@@ -89,16 +91,18 @@ public class SpecialFeaturesOneStrategyTest {
         // given
         final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b1", PrivacyEnforcementAction.restrictAll());
-        final List<VendorPermission> vendorPermissions = asList(vendorPermission1, vendorPermission2);
+        final List<VendorPermission> vendorPermissions = Arrays.asList(vendorPermission1, vendorPermission2);
 
         final SpecialFeature specialFeature = SpecialFeature.of(true, emptyList());
 
         // when
-        target.processSpecialFeaturesStrategy(tcString, specialFeature, vendorPermissions);
+        final Collection<VendorPermission> result = target.processSpecialFeaturesStrategy(tcString, specialFeature,
+                vendorPermissions);
 
         // then
-        assertThat(vendorPermission1).isEqualTo(VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll()));
-        assertThat(vendorPermission2).isEqualTo(VendorPermission.of(2, "b1", PrivacyEnforcementAction.restrictAll()));
+        assertThat(result)
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsOnly(vendorPermission1, vendorPermission2);
 
         verify(specialFeatureOptIns).contains(SPECIAL_FEATURE_ID);
     }
@@ -108,17 +112,18 @@ public class SpecialFeaturesOneStrategyTest {
         // given
         final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b1", PrivacyEnforcementAction.restrictAll());
-        final List<VendorPermission> vendorPermissions = asList(vendorPermission1, vendorPermission2);
+        final List<VendorPermission> vendorPermissions = Arrays.asList(vendorPermission1, vendorPermission2);
 
         final SpecialFeature specialFeature = SpecialFeature.of(true, singletonList("b1"));
 
         // when
-        target.processSpecialFeaturesStrategy(tcString, specialFeature, vendorPermissions);
+        final Collection<VendorPermission> result = target.processSpecialFeaturesStrategy(tcString, specialFeature,
+                vendorPermissions);
 
         // then
         final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b1", allowSpecialFeature());
-        assertThat(vendorPermission1).isEqualTo(VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll()));
-        assertThat(vendorPermission2).isEqualTo(vendorPermission2Changed);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission1,
+                vendorPermission2Changed);
 
         verify(specialFeatureOptIns).contains(SPECIAL_FEATURE_ID);
     }
@@ -129,9 +134,7 @@ public class SpecialFeaturesOneStrategyTest {
         final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b1", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission3 = VendorPermission.of(3, "b3", PrivacyEnforcementAction.restrictAll());
-        final List<VendorPermission> vendorPermissions = asList(
-                vendorPermission1,
-                vendorPermission2,
+        final List<VendorPermission> vendorPermissions = Arrays.asList(vendorPermission1, vendorPermission2,
                 vendorPermission3);
 
         final SpecialFeature specialFeature = SpecialFeature.of(true, singletonList("b1"));
@@ -139,15 +142,15 @@ public class SpecialFeaturesOneStrategyTest {
         given(specialFeatureOptIns.contains(SPECIAL_FEATURE_ID)).willReturn(true);
 
         // when
-        target.processSpecialFeaturesStrategy(tcString, specialFeature, vendorPermissions);
+        final Collection<VendorPermission> result = target.processSpecialFeaturesStrategy(tcString, specialFeature,
+                vendorPermissions);
 
         // then
         final VendorPermission vendorPermission1Changed = VendorPermission.of(1, null, allowSpecialFeature());
         final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b1", allowSpecialFeature());
         final VendorPermission vendorPermission3Changed = VendorPermission.of(3, "b3", allowSpecialFeature());
-        assertThat(vendorPermission1).isEqualTo(vendorPermission1Changed);
-        assertThat(vendorPermission2).isEqualTo(vendorPermission2Changed);
-        assertThat(vendorPermission3).isEqualTo(vendorPermission3Changed);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission1Changed,
+                vendorPermission2Changed, vendorPermission3Changed);
 
         verify(specialFeatureOptIns).contains(SPECIAL_FEATURE_ID);
     }

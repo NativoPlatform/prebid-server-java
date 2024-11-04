@@ -9,8 +9,7 @@ import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.reporter.log.LogAnalyticsReporter;
 import org.prebid.server.analytics.reporter.pubstack.PubstackAnalyticsReporter;
 import org.prebid.server.analytics.reporter.pubstack.model.PubstackAnalyticsProperties;
-import org.prebid.server.auction.privacy.enforcement.TcfEnforcement;
-import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
+import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.vertx.http.HttpClient;
@@ -30,20 +29,18 @@ public class AnalyticsConfiguration {
 
     @Bean
     AnalyticsReporterDelegator analyticsReporterDelegator(
-            Vertx vertx,
             @Autowired(required = false) List<AnalyticsReporter> delegates,
-            TcfEnforcement tcfEnforcement,
-            UserFpdActivityMask userFpdActivityMask,
+            Vertx vertx,
+            PrivacyEnforcementService privacyEnforcementService,
             Metrics metrics,
             @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
 
         return new AnalyticsReporterDelegator(
-                vertx,
+                logSamplingRate,
                 ListUtils.emptyIfNull(delegates),
-                tcfEnforcement,
-                userFpdActivityMask,
-                metrics,
-                logSamplingRate);
+                vertx,
+                privacyEnforcementService,
+                metrics);
     }
 
     @Bean

@@ -3,7 +3,7 @@ package org.prebid.server.hooks.modules.com.confiant.adquality.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
+import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsScanner;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.RedisClient;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.RedisScanStateChecker;
@@ -20,7 +20,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
-import java.util.Collections;
 import java.util.List;
 
 @ConditionalOnProperty(prefix = "hooks." + ConfiantAdQualityModule.CODE, name = "enabled", havingValue = "true")
@@ -38,7 +37,7 @@ public class ConfiantAdQualityModuleConfiguration {
             RedisConfig redisConfig,
             RedisRetryConfig retryConfig,
             Vertx vertx,
-            UserFpdActivityMask userFpdActivityMask,
+            PrivacyEnforcementService privacyEnforcementService,
             ObjectMapper objectMapper) {
 
         final RedisConnectionConfig writeNodeConfig = redisConfig.getWriteNode();
@@ -56,14 +55,14 @@ public class ConfiantAdQualityModuleConfiguration {
 
         bidsScanner.start(scannerPromise);
 
-        return new ConfiantAdQualityModule(Collections.singletonList(
-                new ConfiantAdQualityBidResponsesScanHook(bidsScanner, biddersToExcludeFromScan, userFpdActivityMask)));
+        return new ConfiantAdQualityModule(List.of(
+                new ConfiantAdQualityBidResponsesScanHook(bidsScanner, biddersToExcludeFromScan, privacyEnforcementService)));
     }
 
     @Bean
     ObjectMapper objectMapper() {
         return new ObjectMapper();
-    }
+    };
 
     @Bean
     @ConfigurationProperties(prefix = "hooks.modules.confiant-ad-quality.redis-config")

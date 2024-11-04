@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.pubmatic.model.request;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Value;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
 
@@ -9,7 +8,7 @@ public class PubmaticBidderImpExt {
 
     ExtImpPubmatic bidder;
 
-    ObjectNode data;
+    PubmaticExtData data;
 
     Integer ae;
 

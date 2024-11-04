@@ -5,6 +5,8 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -39,16 +41,32 @@ public class PriceFloorsConfigResolver {
     private final Metrics metrics;
     private final AccountPriceFloorsConfig defaultFloorsConfig;
 
-    public PriceFloorsConfigResolver(Account defaultAccount, Metrics metrics) {
-        this.defaultAccount = Objects.requireNonNull(defaultAccount);
+    public PriceFloorsConfigResolver(String defaultAccountConfig, Metrics metrics, JacksonMapper mapper) {
+        this.defaultAccount = parseAccount(defaultAccountConfig, mapper);
         this.defaultFloorsConfig = getFloorsConfig(defaultAccount);
         this.metrics = Objects.requireNonNull(metrics);
+    }
+
+    private static Account parseAccount(String accountConfig, JacksonMapper mapper) {
+        try {
+            final Account account = StringUtils.isNotBlank(accountConfig)
+                    ? mapper.decodeValue(accountConfig, Account.class)
+                    : null;
+
+            return isNotEmpty(account) ? account : null;
+        } catch (DecodeException e) {
+            throw new IllegalArgumentException("Could not parse default account configuration", e);
+        }
     }
 
     private static AccountPriceFloorsConfig getFloorsConfig(Account account) {
         final AccountAuctionConfig auctionConfig = ObjectUtil.getIfNotNull(account, Account::getAuction);
 
         return ObjectUtil.getIfNotNull(auctionConfig, AccountAuctionConfig::getPriceFloors);
+    }
+
+    private static boolean isNotEmpty(Account account) {
+        return account != null && !account.equals(Account.builder().build());
     }
 
     public Future<Account> updateFloorsConfig(Account account) {
@@ -149,8 +167,9 @@ public class PriceFloorsConfigResolver {
 
     private Account fallbackToDefaultConfig(Account account) {
         final AccountAuctionConfig auctionConfig = account.getAuction();
+        final AccountAuctionConfig defaultAuctionConfig = ObjectUtil.getIfNotNull(defaultAccount, Account::getAuction);
         final AccountPriceFloorsConfig defaultPriceFloorsConfig =
-                ObjectUtil.getIfNotNull(defaultAccount.getAuction(), AccountAuctionConfig::getPriceFloors);
+                ObjectUtil.getIfNotNull(defaultAuctionConfig, AccountAuctionConfig::getPriceFloors);
 
         return account.toBuilder()
                 .auction(auctionConfig.toBuilder().priceFloors(defaultPriceFloorsConfig).build())

@@ -6,7 +6,6 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
-import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -140,7 +139,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         final String body;
 
         final HttpServerResponse response = routingContext.response();
-        enrichResponseWithCommonHeaders(routingContext);
+        enrichWithCommonHeaders(response);
 
         if (responseSucceeded) {
             metricRequestStatus = MetricName.ok;
@@ -235,15 +234,9 @@ public class AuctionHandler implements Handler<RoutingContext> {
         metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
     }
 
-    private void enrichResponseWithCommonHeaders(RoutingContext routingContext) {
-        final MultiMap responseHeaders = routingContext.response().headers();
+    private void enrichWithCommonHeaders(HttpServerResponse response) {
         HttpUtil.addHeaderIfValueIsNotEmpty(
-                responseHeaders, HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
-
-        final MultiMap requestHeaders = routingContext.request().headers();
-        if (requestHeaders.contains(HttpUtil.SEC_BROWSING_TOPICS_HEADER)) {
-            responseHeaders.add(HttpUtil.OBSERVE_BROWSING_TOPICS_HEADER, "?1");
-        }
+                response.headers(), HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
     }
 
     private void enrichWithSuccessfulHeaders(HttpServerResponse response) {

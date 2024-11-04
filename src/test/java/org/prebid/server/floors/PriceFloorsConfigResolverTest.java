@@ -19,6 +19,7 @@ import java.util.function.UnaryOperator;
 
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -30,18 +31,29 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Mock
     private Metrics metrics;
 
-    private PriceFloorsConfigResolver target;
+    private PriceFloorsConfigResolver testingInstance;
 
     @Before
     public void setUp() {
-        target = new PriceFloorsConfigResolver(withDefaultFloorsConfig(identity()), metrics);
+        testingInstance = new PriceFloorsConfigResolver(
+                jacksonMapper.encodeToString(withDefaultFloorsConfig(identity())),
+                metrics,
+                jacksonMapper);
+    }
+
+    @Test
+    public void priceFloorsConfigResolverShouldNotCreateInstanceIfDefaultAccountIsInvalid() {
+        assertThatIllegalArgumentException().isThrownBy(() -> new PriceFloorsConfigResolver(
+                "{",
+                metrics,
+                jacksonMapper));
     }
 
     @Test
     public void updateFloorsConfigShouldNotChangeAccountIfConfigIsValid() {
         // when
         final Account account = accountWithFloorsFetchConfig(identity());
-        final Future<?> future = target.updateFloorsConfig(account);
+        final Future<?> future = testingInstance.updateFloorsConfig(account);
 
         // then
         assertThat(future.result()).isSameAs(account);
@@ -60,7 +72,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
                 .build();
 
         // when
-        final Future<?> future = target.updateFloorsConfig(givenAccount);
+        final Future<?> future = testingInstance.updateFloorsConfig(givenAccount);
 
         // then
         assertThat(future.result())
@@ -80,7 +92,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
                 .build();
 
         // when
-        final Future<?> future = target.updateFloorsConfig(givenAccount);
+        final Future<?> future = testingInstance.updateFloorsConfig(givenAccount);
 
         // then
         assertThat(future.result())
@@ -91,7 +103,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Test
     public void updateFloorsConfigShouldReturnDefaultConfigIfPeriodicSecLessThanMinimumValue() {
         // when
-        final Future<?> future = target.updateFloorsConfig(
+        final Future<?> future = testingInstance.updateFloorsConfig(
                 accountWithFloorsFetchConfig(config -> config.periodSec(200L)));
 
         // then
@@ -103,7 +115,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Test
     public void updateFloorsConfigShouldReturnDefaultConfigIfPeriodicSecMoreThanMaxAgeSec() {
         // when
-        final Future<?> future = target.updateFloorsConfig(accountWithFloorsFetchConfig(config ->
+        final Future<?> future = testingInstance.updateFloorsConfig(accountWithFloorsFetchConfig(config ->
                 config.periodSec(900L).maxAgeSec(800L)));
 
         // then
@@ -115,7 +127,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Test
     public void updateFloorsConfigShouldReturnDefaultConfigIfMaxAgeSecLessThanMinimumValue() {
         // when
-        final Future<?> future = target.updateFloorsConfig(
+        final Future<?> future = testingInstance.updateFloorsConfig(
                 accountWithFloorsFetchConfig(config -> config.maxAgeSec(500L)));
 
         // then
@@ -127,7 +139,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Test
     public void updateFloorsConfigShouldReturnDefaultConfigIfMaxAgeSecMoreThanMaximumValue() {
         // when
-        final Future<?> future = target.updateFloorsConfig(
+        final Future<?> future = testingInstance.updateFloorsConfig(
                 accountWithFloorsFetchConfig(config -> config.maxAgeSec(Integer.MAX_VALUE + 1L)));
 
         // then
@@ -139,7 +151,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Test
     public void updateFloorsConfigShouldReturnDefaultConfigIfTimeoutLessThanMinimumValue() {
         // when
-        final Future<?> future = target.updateFloorsConfig(
+        final Future<?> future = testingInstance.updateFloorsConfig(
                 accountWithFloorsFetchConfig(config -> config.timeout(9L)));
 
         // then
@@ -151,7 +163,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Test
     public void updateFloorsConfigShouldReturnDefaultConfigIfTimeoutMoreThanMaximumValue() {
         // when
-        final Future<?> future = target.updateFloorsConfig(
+        final Future<?> future = testingInstance.updateFloorsConfig(
                 accountWithFloorsFetchConfig(config -> config.timeout(12000L)));
 
         // then
@@ -163,7 +175,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Test
     public void updateFloorsConfigShouldReturnDefaultConfigIfMaxRulesLessThanMinimumValue() {
         // when
-        final Future<?> future = target.updateFloorsConfig(
+        final Future<?> future = testingInstance.updateFloorsConfig(
                 accountWithFloorsFetchConfig(config -> config.maxRules(-1L)));
 
         // then
@@ -175,7 +187,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Test
     public void updateFloorsConfigShouldReturnDefaultConfigIfMaxRulesMoreThanMaximumValue() {
         // when
-        final Future<?> future = target.updateFloorsConfig(
+        final Future<?> future = testingInstance.updateFloorsConfig(
                 accountWithFloorsFetchConfig(config -> config.maxRules(Integer.MAX_VALUE + 1L)));
 
         // then
@@ -187,7 +199,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Test
     public void updateFloorsConfigShouldReturnDefaultConfigIfMaxFileSizeLessThanMinimumValue() {
         // when
-        final Future<?> future = target.updateFloorsConfig(
+        final Future<?> future = testingInstance.updateFloorsConfig(
                 accountWithFloorsFetchConfig(config -> config.maxFileSize(-1L)));
 
         // then
@@ -199,7 +211,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Test
     public void updateFloorsConfigShouldReturnDefaultConfigIfMaxFileSizeMoreThanMaximumValue() {
         // when
-        final Future<?> future = target.updateFloorsConfig(
+        final Future<?> future = testingInstance.updateFloorsConfig(
                 accountWithFloorsFetchConfig(config -> config.maxFileSize(Integer.MAX_VALUE + 1L)));
 
         // then
@@ -220,7 +232,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
                 .build();
 
         // when
-        final Future<?> future = target.updateFloorsConfig(givenAccount);
+        final Future<?> future = testingInstance.updateFloorsConfig(givenAccount);
 
         // then
         assertThat(future.result())
@@ -231,7 +243,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Test
     public void updateFloorsConfigShouldValidateByDefaultConfigWhenAccountMaxFileSizeIsNotPresent() {
         // when
-        final Future<?> future = target.updateFloorsConfig(
+        final Future<?> future = testingInstance.updateFloorsConfig(
                 accountWithFloorsFetchConfig(config -> config.maxFileSize(null)));
 
         // then
@@ -243,7 +255,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Test
     public void updateFloorsConfigShouldValidateByDefaultConfigWhenAccountPeriodicSecIsNotPresent() {
         // when
-        final Future<?> future = target.updateFloorsConfig(
+        final Future<?> future = testingInstance.updateFloorsConfig(
                 accountWithFloorsFetchConfig(config -> config.periodSec(null)));
 
         // then
@@ -255,7 +267,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Test
     public void updateFloorsConfigShouldValidateByDefaultConfigWhenAccountFetchTimeoutIsNotPresent() {
         // when
-        final Future<?> future = target.updateFloorsConfig(
+        final Future<?> future = testingInstance.updateFloorsConfig(
                 accountWithFloorsFetchConfig(config -> config.timeout(null)));
 
         // then
@@ -267,7 +279,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Test
     public void updateFloorsConfigShouldValidateByDefaultConfigWhenAccountMaxRulesIsNotPresent() {
         // when
-        final Future<?> future = target.updateFloorsConfig(
+        final Future<?> future = testingInstance.updateFloorsConfig(
                 accountWithFloorsFetchConfig(config -> config.maxRules(null)));
 
         // then
@@ -279,7 +291,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Test
     public void updateFloorsConfigShouldValidateByDefaultConfigWhenAccountMaxAgeSecIsNotPresent() {
         // when
-        final Future<?> future = target.updateFloorsConfig(
+        final Future<?> future = testingInstance.updateFloorsConfig(
                 accountWithFloorsFetchConfig(config -> config.maxAgeSec(null)));
 
         // then

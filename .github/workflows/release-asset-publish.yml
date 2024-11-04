@@ -1,10 +1,9 @@
 name: Publish release .jar
 
 on:
-  workflow_run:
-    workflows: [Publish release]
-    types:
-      - completed
+  push:
+    tags:
+      - '*'
 
 jobs:
   build:
@@ -14,7 +13,7 @@ jobs:
       matrix:
         java: [ 17 ]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:

@@ -41,7 +41,7 @@ public class RedisParser {
             } catch (JsonProcessingException errorParse) {
                 message = String.format("Error during parse redis response: %s", redisResponse);
             }
-            logger.warn(message);
+            logger.info(message);
             return BidsScanResult.builder()
                     .bidScanResults(Collections.emptyList())
                     .debugMessages(List.of(message))

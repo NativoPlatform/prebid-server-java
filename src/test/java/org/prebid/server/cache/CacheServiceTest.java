@@ -19,7 +19,6 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidInfo;
 import org.prebid.server.auction.model.CachedDebugLog;
-import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.cache.model.CacheContext;
 import org.prebid.server.cache.model.CacheHttpRequest;
 import org.prebid.server.cache.model.CacheInfo;
@@ -207,9 +206,7 @@ public class CacheServiceTest extends VertxTest {
         // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidInfo(identity())),
-                givenAuctionContext().toBuilder()
-                        .timeoutContext(TimeoutContext.of(0, expiredTimeout, 0))
-                        .build(),
+                givenAuctionContext().toBuilder().timeout(expiredTimeout).build(),
                 CacheContext.builder()
                         .shouldCacheBids(true)
                         .build(),
@@ -978,7 +975,7 @@ public class CacheServiceTest extends VertxTest {
         return AuctionContext.builder()
                 .account(accountCustomizer.apply(accountBuilder).build())
                 .bidRequest(bidRequestCustomizer.apply(bidRequestBuilder).build())
-                .timeoutContext(TimeoutContext.of(0, timeout, 0))
+                .timeout(timeout)
                 .build();
     }
 
@@ -1019,7 +1016,6 @@ public class CacheServiceTest extends VertxTest {
                                         BidType bidType,
                                         String bidder,
                                         String lineItemId) {
-
         return givenBidInfo(bidCustomizer, bidType, bidder).toBuilder()
                 .lineItemId(lineItemId)
                 .build();

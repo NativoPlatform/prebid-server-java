@@ -27,6 +27,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.pubmatic.model.request.PubmaticBidderImpExt;
+import org.prebid.server.bidder.pubmatic.model.request.PubmaticExtData;
 import org.prebid.server.bidder.pubmatic.model.request.PubmaticExtDataAdServer;
 import org.prebid.server.bidder.pubmatic.model.request.PubmaticWrapper;
 import org.prebid.server.bidder.pubmatic.model.response.PubmaticBidExt;
@@ -198,9 +199,7 @@ public class PubmaticBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final ExtRequest expectedExtRequest = ExtRequest.of(ExtRequestPrebid.builder()
-                .bidderparams(pubmaticNode)
-                .build());
+        final ExtRequest expectedExtRequest = ExtRequest.empty();
         expectedExtRequest.addProperty("acat",
                 mapper.createArrayNode().add("te st Value").add("test Value").add("Value"));
 
@@ -227,7 +226,7 @@ public class PubmaticBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
-                .containsExactly(expectedBidRequestExt(bidRequest.getExt(), 123, 456));
+                .containsExactly(expectedBidRequestExt(123, 456));
     }
 
     @Test
@@ -279,7 +278,7 @@ public class PubmaticBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
-                .containsExactly(expectedBidRequestExt(bidRequestExt, 21, 33));
+                .containsExactly(expectedBidRequestExt(21, 33));
     }
 
     @Test
@@ -523,16 +522,14 @@ public class PubmaticBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldAddImpExtAddUnitKeyKeyWordFromDataAdSlotIfAdServerNameIsNotGam() {
         // given
-        final ObjectNode extData = mapper.createObjectNode()
-                .put("pbadslot", "pbaAdSlot")
-                .set("adserver", mapper.valueToTree(PubmaticExtDataAdServer.of("adServerName", "adServerAdSlot")));
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .id("123")
                         .banner(Banner.builder().build())
                         .ext(mapper.valueToTree(PubmaticBidderImpExt.of(
                                 ExtImpPubmatic.builder().build(),
-                                extData,
+                                PubmaticExtData.of("pbaAdSlot",
+                                        PubmaticExtDataAdServer.of("adServerName", "adServerAdSlot")),
                                 null
                         )))
                         .build()))
@@ -555,16 +552,13 @@ public class PubmaticBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldAddImpExtAddUnitKeyKeyWordFromAdServerAdSlotIfAdServerNameIsGam() {
         // given
-        final ObjectNode extData = mapper.createObjectNode()
-                .put("pbadslot", "pbaAdSlot")
-                .set("adserver", mapper.valueToTree(PubmaticExtDataAdServer.of("gam", "adServerAdSlot")));
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .id("123")
                         .banner(Banner.builder().build())
                         .ext(mapper.valueToTree(PubmaticBidderImpExt.of(
                                 ExtImpPubmatic.builder().build(),
-                                extData,
+                                PubmaticExtData.of("pbaAdSlot", PubmaticExtDataAdServer.of("gam", "adServerAdSlot")),
                                 null
                         )))
                         .build()))
@@ -576,75 +570,6 @@ public class PubmaticBidderTest extends VertxTest {
         // then
         final ObjectNode expectedImpExt = mapper.createObjectNode();
         expectedImpExt.put("dfp_ad_unit_code", "adServerAdSlot");
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getExt)
-                .containsOnly(expectedImpExt);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldAddImpExtWithKeyValWithDctrAndExtDataExceptForPbaSlotAndAdServer() {
-        // given
-        final ObjectNode extData = mapper.createObjectNode()
-                .put("pbadslot", "pbaAdSlot")
-                .put("key1", "value")
-                .set("adserver", mapper.valueToTree(PubmaticExtDataAdServer.of("gam", "adServerAdSlot")));
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("123")
-                        .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(PubmaticBidderImpExt.of(
-                                ExtImpPubmatic.builder().dctr("dctr").build(),
-                                extData,
-                                null
-                        )))
-                        .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        final ObjectNode expectedImpExt = mapper.createObjectNode();
-        expectedImpExt.put("dfp_ad_unit_code", "adServerAdSlot");
-        expectedImpExt.put("key_val", "dctr|key1=value");
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getExt)
-                .containsOnly(expectedImpExt);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldAddImpExtWithKeyValWithExtDataWhenDctrIsAbsent() {
-        // given
-        final ObjectNode extData = mapper.createObjectNode()
-                .put("key1", "  value")
-                .put("key2", 1)
-                .put("key3", true)
-                .put("key4", 3.42)
-                .set("key5", mapper.createArrayNode().add("elem1").add("elem2"));
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("123")
-                        .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(PubmaticBidderImpExt.of(
-                                ExtImpPubmatic.builder().dctr(null).build(),
-                                extData,
-                                null
-                        )))
-                        .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        final ObjectNode expectedImpExt = mapper.createObjectNode();
-        expectedImpExt.put("key_val", "key1=value|key2=1|key3=true|key4=3.42|key5=elem1,elem2");
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
@@ -717,7 +642,7 @@ public class PubmaticBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
-                .containsExactly(expectedBidRequestExt(ExtRequest.empty(), 1, 1));
+                .containsExactly(expectedBidRequestExt(1, 1));
     }
 
     @Test
@@ -889,8 +814,6 @@ public class PubmaticBidderTest extends VertxTest {
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), "application/json"));
     }
-
-    //-------todo
 
     @Test
     public void makeBidderResponseShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
@@ -1246,13 +1169,11 @@ public class PubmaticBidderTest extends VertxTest {
         return ExtRequest.of(ExtRequestPrebid.builder().bidderparams(pubmaticNode).build());
     }
 
-    private static ExtRequest expectedBidRequestExt(ExtRequest originalExtRequest,
-                                                    Integer wrapperProfile,
-                                                    Integer wrapperVersion) {
+    private static ExtRequest expectedBidRequestExt(Integer wrapperProfile, Integer wrapperVersion) {
         final ObjectNode wrapperNode = mapper.createObjectNode()
                 .set("wrapper", mapper.valueToTree(PubmaticWrapper.of(wrapperProfile, wrapperVersion)));
 
-        return jacksonMapper.fillExtension(originalExtRequest, wrapperNode);
+        return jacksonMapper.fillExtension(ExtRequest.empty(), wrapperNode);
     }
 
     private static BidRequest givenBidRequest(

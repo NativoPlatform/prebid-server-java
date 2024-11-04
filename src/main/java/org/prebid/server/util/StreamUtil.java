@@ -15,6 +15,7 @@ public class StreamUtil {
     }
 
     public static <T> Stream<T> asStream(Iterator<T> iterator) {
-        return StreamSupport.stream(IterableUtil.iterable(iterator).spliterator(), false);
+        final Iterable<T> iterable = () -> iterator;
+        return StreamSupport.stream(iterable.spliterator(), false);
     }
 }

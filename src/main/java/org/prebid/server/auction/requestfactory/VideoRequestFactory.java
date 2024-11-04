@@ -16,12 +16,11 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.DebugResolver;
+import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.WithPodErrors;
-import org.prebid.server.auction.privacy.contextfactory.AuctionPrivacyContextFactory;
-import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.DecodeException;
@@ -57,7 +56,7 @@ public class VideoRequestFactory {
     private final VideoStoredRequestProcessor storedRequestProcessor;
     private final BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     private final Ortb2ImplicitParametersResolver paramsResolver;
-    private final AuctionPrivacyContextFactory auctionPrivacyContextFactory;
+    private final PrivacyEnforcementService privacyEnforcementService;
     private final DebugResolver debugResolver;
     private final JacksonMapper mapper;
 
@@ -68,7 +67,7 @@ public class VideoRequestFactory {
                                VideoStoredRequestProcessor storedRequestProcessor,
                                BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
                                Ortb2ImplicitParametersResolver paramsResolver,
-                               AuctionPrivacyContextFactory auctionPrivacyContextFactory,
+                               PrivacyEnforcementService privacyEnforcementService,
                                DebugResolver debugResolver,
                                JacksonMapper mapper) {
 
@@ -78,7 +77,7 @@ public class VideoRequestFactory {
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
         this.paramsResolver = Objects.requireNonNull(paramsResolver);
-        this.auctionPrivacyContextFactory = Objects.requireNonNull(auctionPrivacyContextFactory);
+        this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.debugResolver = Objects.requireNonNull(debugResolver);
         this.mapper = Objects.requireNonNull(mapper);
 
@@ -108,9 +107,9 @@ public class VideoRequestFactory {
                         createBidRequest(httpRequest)
 
                                 .compose(bidRequest -> validateRequest(
-                                        bidRequest,
-                                        httpRequest,
-                                        initialAuctionContext.getDebugWarnings()))
+                                                bidRequest,
+                                                httpRequest,
+                                                initialAuctionContext.getDebugWarnings()))
 
                                 .map(bidRequestWithErrors -> populatePodErrors(
                                         bidRequestWithErrors.getPodErrors(), podErrors, bidRequestWithErrors))
@@ -126,7 +125,7 @@ public class VideoRequestFactory {
                 .compose(auctionContext -> ortb2RequestFactory.activityInfrastructureFrom(auctionContext)
                         .map(auctionContext::with))
 
-                .compose(auctionContext -> auctionPrivacyContextFactory.contextFrom(auctionContext)
+                .compose(auctionContext -> privacyEnforcementService.contextFromBidRequest(auctionContext)
                         .map(auctionContext::with))
 
                 .map(auctionContext -> auctionContext.with(
@@ -298,10 +297,7 @@ public class VideoRequestFactory {
         final BidRequest bidRequest = bidRequestToErrors.getData();
         final BidRequest updatedBidRequest = paramsResolver.resolve(
                 bidRequest,
-                AuctionContext.builder()
-                        .httpRequest(httpRequest)
-                        .debugContext(DebugContext.empty())
-                        .build(),
+                httpRequest,
                 ENDPOINT,
                 false);
         final BidRequest updatedWithDebugBidRequest = debugEnabled

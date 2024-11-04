@@ -26,9 +26,8 @@ import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.model.VideoEvent;
+import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.privacy.enforcement.TcfEnforcement;
-import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.MetricName;
@@ -57,29 +56,27 @@ public class AnalyticsReporterDelegator {
     private static final ConditionalLogger UNKNOWN_ADAPTERS_LOGGER = new ConditionalLogger(logger);
     private static final Set<String> ADAPTERS_PERMITTED_FOR_FULL_DATA = Collections.singleton("logAnalytics");
 
-    private final Vertx vertx;
-    private final List<AnalyticsReporter> delegates;
-    private final TcfEnforcement tcfEnforcement;
-    private final UserFpdActivityMask mask;
-    private final Metrics metrics;
     private final double logSamplingRate;
+
+    private final List<AnalyticsReporter> delegates;
+    private final Vertx vertx;
+    private final PrivacyEnforcementService privacyEnforcementService;
+    private final Metrics metrics;
 
     private final Set<Integer> reporterVendorIds;
     private final Set<String> reporterNames;
 
-    public AnalyticsReporterDelegator(Vertx vertx,
+    public AnalyticsReporterDelegator(double logSamplingRate,
                                       List<AnalyticsReporter> delegates,
-                                      TcfEnforcement tcfEnforcement,
-                                      UserFpdActivityMask userFpdActivityMask,
-                                      Metrics metrics,
-                                      double logSamplingRate) {
+                                      Vertx vertx,
+                                      PrivacyEnforcementService privacyEnforcementService,
+                                      Metrics metrics) {
 
-        this.vertx = Objects.requireNonNull(vertx);
-        this.delegates = Objects.requireNonNull(delegates);
-        this.tcfEnforcement = Objects.requireNonNull(tcfEnforcement);
-        this.mask = Objects.requireNonNull(userFpdActivityMask);
-        this.metrics = Objects.requireNonNull(metrics);
         this.logSamplingRate = logSamplingRate;
+        this.delegates = Objects.requireNonNull(delegates);
+        this.vertx = Objects.requireNonNull(vertx);
+        this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
+        this.metrics = Objects.requireNonNull(metrics);
 
         reporterVendorIds = delegates.stream().map(AnalyticsReporter::vendorId).collect(Collectors.toSet());
         reporterNames = delegates.stream().map(AnalyticsReporter::name).collect(Collectors.toSet());
@@ -96,7 +93,7 @@ public class AnalyticsReporterDelegator {
     }
 
     public <T> void processEvent(T event, TcfContext tcfContext) {
-        tcfEnforcement.enforce(reporterVendorIds, tcfContext)
+        privacyEnforcementService.resultForVendorIds(reporterVendorIds, tcfContext)
                 .onComplete(privacyEnforcementMap -> delegateEvent(event, tcfContext, privacyEnforcementMap));
     }
 
@@ -229,19 +226,22 @@ public class AnalyticsReporterDelegator {
                                         String adapter,
                                         ActivityInfrastructure infrastructure) {
 
-        final ActivityInvocationPayload payload = BidRequestActivityInvocationPayload.of(
+        final ActivityInvocationPayload activityInvocationPayload = BidRequestActivityInvocationPayload.of(
                 activityInvocationPayload(adapter),
                 bidRequest);
 
-        final boolean disallowTransmitUfpd = !isAllowedActivity(infrastructure, Activity.TRANSMIT_UFPD, payload);
-        final boolean disallowTransmitEids = !isAllowedActivity(infrastructure, Activity.TRANSMIT_EIDS, payload);
-        final boolean disallowTransmitGeo = !isAllowedActivity(infrastructure, Activity.TRANSMIT_GEO, payload);
+        final boolean disallowTransmitUfpd = !isAllowedActivity(
+                infrastructure, Activity.TRANSMIT_UFPD, activityInvocationPayload);
+        final boolean disallowTransmitGeo = !isAllowedActivity(
+                infrastructure, Activity.TRANSMIT_GEO, activityInvocationPayload);
 
         final User user = bidRequest != null ? bidRequest.getUser() : null;
-        final User resolvedUser = mask.maskUser(user, disallowTransmitUfpd, disallowTransmitEids, disallowTransmitGeo);
+        final User resolvedUser = privacyEnforcementService
+                .maskUserConsideringActivityRestrictions(user, disallowTransmitUfpd, disallowTransmitGeo);
 
         final Device device = bidRequest != null ? bidRequest.getDevice() : null;
-        final Device resolvedDevice = mask.maskDevice(device, disallowTransmitUfpd, disallowTransmitGeo);
+        final Device resolvedDevice = privacyEnforcementService
+                .maskDeviceConsideringActivityRestrictions(device, disallowTransmitUfpd, disallowTransmitGeo);
 
         final ExtRequest requestExt = bidRequest != null ? bidRequest.getExt() : null;
         final ExtRequest updatedExtRequest = updateExtRequest(requestExt, adapter);

@@ -396,18 +396,14 @@ public class Metrics extends UpdatableMetrics {
 
     public void updateAuctionTcfMetrics(String bidder,
                                         MetricName requestType,
-                                        boolean userFpdRemoved,
-                                        boolean userIdsRemoved,
+                                        boolean userIdRemoved,
                                         boolean geoMasked,
                                         boolean analyticsBlocked,
                                         boolean requestBlocked) {
 
         final TcfMetrics tcf = forAdapter(bidder).requestType(requestType).tcf();
 
-        if (userFpdRemoved) {
-            tcf.incCounter(MetricName.userfpd_masked);
-        }
-        if (userIdsRemoved) {
+        if (userIdRemoved) {
             tcf.incCounter(MetricName.userid_removed);
         }
         if (geoMasked) {

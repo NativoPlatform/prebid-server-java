@@ -47,7 +47,7 @@ adapters:
             uid-macro: '$AUID'
       nativo:
         enabled: true
-        endpoint: http://localhost:8080/esi?ntv_epid=7 # do not merge this change to release branches or master
+        endpoint: https://qa.jadserve.postrelease.com/esi?ntv_epid=7
         pbs-enforces-ccpa: false
         meta-info:
           maintainer-email: prebiddev@nativo.com

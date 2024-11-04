@@ -1,7 +1,6 @@
 package org.prebid.server.settings.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.settings.model.activity.AccountActivityConfiguration;
@@ -10,8 +9,7 @@ import org.prebid.server.settings.model.activity.privacy.AccountPrivacyModuleCon
 import java.util.List;
 import java.util.Map;
 
-@Builder(toBuilder = true)
-@Value
+@Value(staticConstructor = "of")
 public class AccountPrivacyConfig {
 
     AccountGdprConfig gdpr;

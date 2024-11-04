@@ -157,25 +157,24 @@ public class FileApplicationSettingsTest extends VertxTest {
                         .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.enforce))
                         .events(AccountEventsConfig.of(true))
                         .build())
-                .privacy(AccountPrivacyConfig.builder()
-                        .gdpr(AccountGdprConfig.builder()
+                .privacy(AccountPrivacyConfig.of(
+                        AccountGdprConfig.builder()
                                 .enabled(true)
                                 .enabledForRequestType(EnabledForRequestType.of(true, true, true, true, true))
                                 .purposes(Purposes.builder()
-                                        .p1(Purpose.of(
-                                                EnforcePurpose.basic,
-                                                false,
-                                                asList("rubicon", "appnexus"),
-                                                null))
-                                        .p2(Purpose.of(EnforcePurpose.full, true, singletonList("openx"), null))
+                                        .p1(Purpose.of(EnforcePurpose.basic, false, asList("rubicon", "appnexus")))
+                                        .p2(Purpose.of(EnforcePurpose.full, true, singletonList("openx")))
                                         .build())
                                 .specialFeatures(SpecialFeatures.builder()
                                         .sf1(SpecialFeature.of(true, asList("rubicon", "appnexus")))
                                         .sf2(SpecialFeature.of(false, singletonList("openx")))
                                         .build())
                                 .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)
-                                .build())
-                        .build())
+                                .build(),
+                        null,
+                        null,
+                        null,
+                        null))
                 .analytics(AccountAnalyticsConfig.of(
                         expectedEventsConfig,
                         singletonMap(

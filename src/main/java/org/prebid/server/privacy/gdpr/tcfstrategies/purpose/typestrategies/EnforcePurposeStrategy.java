@@ -7,11 +7,10 @@ import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;
 
 import java.util.Collection;
-import java.util.stream.Stream;
 
 public abstract class EnforcePurposeStrategy {
 
-    public abstract Stream<VendorPermission> allowedByTypeStrategy(
+    public abstract Collection<VendorPermission> allowedByTypeStrategy(
             PurposeCode purpose,
             TCString vendorConsent,
             Collection<VendorPermissionWithGvl> vendorsForPurpose,
@@ -60,7 +59,11 @@ public abstract class EnforcePurposeStrategy {
         return isPurposeAllowed && isVendorAllowed;
     }
 
-    protected static Stream<VendorPermission> toVendorPermissions(Collection<VendorPermissionWithGvl> permissions) {
-        return permissions.stream().map(VendorPermissionWithGvl::getVendorPermission);
+    protected static Collection<VendorPermission> toVendorPermissions(
+            Collection<VendorPermissionWithGvl> vendorPermissionWithGvls) {
+
+        return vendorPermissionWithGvls.stream()
+                .map(VendorPermissionWithGvl::getVendorPermission)
+                .toList();
     }
 }

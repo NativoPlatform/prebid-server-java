@@ -1,6 +1,14 @@
 status-response: "ok"
 adapters:
-  nativo:
+  appnexus:
+    enabled: true
+  ix:
+    enabled: true
+  openx:
+    enabled: true
+  pubmatic:
+    enabled: true
+  rubicon:
     enabled: true
 metrics:
   prefix: prebid
