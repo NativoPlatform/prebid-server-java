@@ -25,7 +25,6 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.RawAuctionResponse
 import org.prebid.server.functional.model.response.biddersparams.BiddersParamsResponse
 import org.prebid.server.functional.model.response.cookiesync.CookieSyncResponse
-import org.prebid.server.functional.model.response.cookiesync.RawCookieSyncResponse
 import org.prebid.server.functional.model.response.currencyrates.CurrencyRatesResponse
 import org.prebid.server.functional.model.response.getuids.GetuidResponse
 import org.prebid.server.functional.model.response.infobidders.BidderInfoResponse
@@ -87,7 +86,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         def response = postAuction(bidRequest, headers)
 
         checkResponseStatusCode(response)
-        decode(response.body.asString(), BidResponse)
+        response.as(BidResponse)
     }
 
     @Step("[POST RAW] /openrtb2/auction")
@@ -105,7 +104,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         def response = getAmp(ampRequest, headers)
 
         checkResponseStatusCode(response)
-        decode(response.body.asString(), AmpResponse)
+        response.as(AmpResponse)
     }
 
     @Step("[GET RAW] /openrtb2/amp")
@@ -123,7 +122,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         def response = postCookieSync(request)
 
         checkResponseStatusCode(response)
-        decode(response.body.asString(), CookieSyncResponse)
+        response.as(CookieSyncResponse)
     }
 
     @Step("[POST] /cookie_sync with headers")
@@ -131,7 +130,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         def response = postCookieSync(request, null, headers)
 
         checkResponseStatusCode(response)
-        decode(response.body.asString(), CookieSyncResponse)
+        response.as(CookieSyncResponse)
     }
 
     @Step("[POST] /cookie_sync with uids cookie")
@@ -139,7 +138,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         def response = postCookieSync(request, uidsCookie)
 
         checkResponseStatusCode(response)
-        decode(response.body.asString(), CookieSyncResponse)
+        response.as(CookieSyncResponse)
     }
 
     @Step("[POST] /cookie_sync with uids and additional cookies")
@@ -149,29 +148,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         def response = postCookieSync(request, uidsCookie, additionalCookies)
 
         checkResponseStatusCode(response)
-        decode(response.body.asString(), CookieSyncResponse)
-    }
-
-    @Step("[POST RAW] /cookie_sync with uids cookies")
-    RawCookieSyncResponse sendCookieSyncRequestRaw(CookieSyncRequest request, UidsCookie uidsCookie) {
-        def response = postCookieSync(request, uidsCookie)
-
-        new RawCookieSyncResponse().tap {
-            it.headers = getHeaders(response)
-            it.responseBody = response.body.asString()
-        }
-    }
-
-    @Step("[POST RAW] /cookie_sync with uids and additional cookies")
-    RawCookieSyncResponse sendCookieSyncRequestRaw(CookieSyncRequest request,
-                                                   UidsCookie uidsCookie,
-                                                   Map<String, String> additionalCookies) {
-        def response = postCookieSync(request, uidsCookie, additionalCookies)
-
-        new RawCookieSyncResponse().tap {
-            it.headers = getHeaders(response)
-            it.responseBody = response.body.asString()
-        }
+        response.as(CookieSyncResponse)
     }
 
     @Step("[GET] /setuid")
@@ -201,7 +178,7 @@ class PrebidServerService implements ObjectMapperWrapper {
                                                   .get(GET_UIDS_ENDPOINT)
 
         checkResponseStatusCode(response)
-        decode(response.body.asString(), GetuidResponse)
+        response.as(GetuidResponse)
     }
 
     @Step("[GET] /event")
@@ -221,7 +198,7 @@ class PrebidServerService implements ObjectMapperWrapper {
                                                   .post(VTRACK_ENDPOINT)
 
         checkResponseStatusCode(response)
-        decode(response.body.asString(), PrebidCacheResponse)
+        response.as(PrebidCacheResponse)
     }
 
     @Step("[GET] /status")
@@ -229,7 +206,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         def response = given(requestSpecification).get(STATUS_ENDPOINT)
 
         checkResponseStatusCode(response)
-        decode(response.body.asString(), StatusResponse)
+        response.as(StatusResponse)
     }
 
     @Step("[GET] /info/bidders")
@@ -254,7 +231,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         def response = given(requestSpecification).get("$INFO_BIDDERS_ENDPOINT/$bidderName.value")
 
         checkResponseStatusCode(response)
-        decode(response.body.asString(), BidderInfoResponse)
+        response.as(BidderInfoResponse)
     }
 
     @Step("[GET] /bidders/params")
@@ -262,7 +239,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         def response = given(requestSpecification).get(BIDDERS_PARAMS_ENDPOINT)
 
         checkResponseStatusCode(response)
-        decode(response.body.asString(), BiddersParamsResponse)
+        response.as(BiddersParamsResponse)
     }
 
     @Step("[GET] /currency/rates")
@@ -270,7 +247,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         def response = given(adminRequestSpecification).get(CURRENCY_RATES_ENDPOINT)
 
         checkResponseStatusCode(response)
-        decode(response.body.asString(), CurrencyRatesResponse)
+        response.as(CurrencyRatesResponse)
     }
 
     @Step("[GET] /logging/httpinteraction")
@@ -308,7 +285,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         def response = request.get(LINE_ITEM_STATUS_ENDPOINT)
 
         checkResponseStatusCode(response)
-        decode(response.body.asString(), LineItemStatusReport)
+        response.as(LineItemStatusReport)
     }
 
     @Step("[GET] /metrics")

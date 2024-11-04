@@ -16,7 +16,6 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.deals.deviceinfo.DeviceInfoService;
 import org.prebid.server.deals.model.DeviceInfo;
 import org.prebid.server.deals.model.UserData;
@@ -500,7 +499,6 @@ public class UserAdditionalInfoServiceTest extends VertxTest {
         return AuctionContext.builder()
                 .bidRequest(bidRequest)
                 .account(account)
-                .timeoutContext(TimeoutContext.of(0, null, 0))
                 .debugWarnings(new ArrayList<>())
                 .build();
     }

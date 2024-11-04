@@ -24,6 +24,4 @@ class AccountAuctionConfig {
     Targeting targeting
     @JsonProperty("preferredmediatype")
     Map<BidderName, MediaType> preferredMediaType
-    @JsonProperty("privacysandbox")
-    PrivacySandbox privacySandbox
 }

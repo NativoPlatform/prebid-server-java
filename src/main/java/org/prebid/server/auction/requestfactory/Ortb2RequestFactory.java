@@ -24,7 +24,6 @@ import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.IpAddress;
-import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.deals.UserAdditionalInfoService;
@@ -92,7 +91,6 @@ public class Ortb2RequestFactory {
     private static final ConditionalLogger UNKNOWN_ACCOUNT_LOGGER = new ConditionalLogger("unknown_account", logger);
 
     private final boolean enforceValidAccount;
-    private final int timeoutAdjustmentFactor;
     private final double logSamplingRate;
     private final List<String> blacklistedAccounts;
     private final UidsCookieService uidsCookieService;
@@ -111,7 +109,6 @@ public class Ortb2RequestFactory {
     private final Clock clock;
 
     public Ortb2RequestFactory(boolean enforceValidAccount,
-                               int timeoutAdjustmentFactor,
                                double logSamplingRate,
                                List<String> blacklistedAccounts,
                                UidsCookieService uidsCookieService,
@@ -129,12 +126,7 @@ public class Ortb2RequestFactory {
                                Metrics metrics,
                                Clock clock) {
 
-        if (timeoutAdjustmentFactor < 0 || timeoutAdjustmentFactor > 100) {
-            throw new IllegalArgumentException("Expected timeout adjustment factor should be in [0, 100].");
-        }
-
         this.enforceValidAccount = enforceValidAccount;
-        this.timeoutAdjustmentFactor = timeoutAdjustmentFactor;
         this.logSamplingRate = logSamplingRate;
         this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
@@ -176,7 +168,8 @@ public class Ortb2RequestFactory {
                 .httpRequest(httpRequest)
                 .uidsCookie(uidsCookieService.parseFromRequest(httpRequest))
                 .bidRequest(bidRequest)
-                .timeoutContext(TimeoutContext.of(startTime, timeout(bidRequest, startTime), timeoutAdjustmentFactor))
+                .startTime(startTime)
+                .timeout(timeout(bidRequest, startTime))
                 .deepDebugLog(createDeepDebugLog(bidRequest))
                 .build();
     }
@@ -191,7 +184,7 @@ public class Ortb2RequestFactory {
 
     private Future<Account> fetchAccount(AuctionContext auctionContext, boolean isLookupStoredRequest) {
         final BidRequest bidRequest = auctionContext.getBidRequest();
-        final Timeout timeout = auctionContext.getTimeoutContext().getTimeout();
+        final Timeout timeout = auctionContext.getTimeout();
         final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
 
         return findAccountIdFrom(bidRequest, isLookupStoredRequest)
@@ -366,8 +359,7 @@ public class Ortb2RequestFactory {
     }
 
     public AuctionContext updateTimeout(AuctionContext auctionContext, long startTime) {
-        final TimeoutContext timeoutContext = auctionContext.getTimeoutContext();
-        final Timeout currentTimeout = timeoutContext.getTimeout();
+        final Timeout currentTimeout = auctionContext.getTimeout();
 
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final BidRequest resolvedBidRequest = resolveBidRequest(bidRequest);
@@ -384,7 +376,7 @@ public class Ortb2RequestFactory {
 
         return auctionContext.toBuilder()
                 .bidRequest(effectiveBidRequest)
-                .timeoutContext(timeoutContext.with(requestTimeout))
+                .timeout(requestTimeout)
                 .build();
     }
 

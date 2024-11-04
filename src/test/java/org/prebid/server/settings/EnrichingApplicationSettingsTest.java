@@ -45,7 +45,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
     private PriceFloorsConfigResolver priceFloorsConfigResolver;
     private final JsonMerger jsonMerger = new JsonMerger(jacksonMapper);
 
-    private EnrichingApplicationSettings target;
+    private EnrichingApplicationSettings enrichingApplicationSettings;
 
     @Mock
     private Timeout timeout;
@@ -59,23 +59,18 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
     @Test
     public void getAccountByIdShouldOmitMergingWhenDefaultAccountIsNull() {
         // given
-        target = new EnrichingApplicationSettings(
-                true,
-                0,
-                Account.builder().build(),
-                delegate,
-                priceFloorsConfigResolver,
-                jsonMerger);
+        enrichingApplicationSettings = new EnrichingApplicationSettings(
+                true, 0, null, delegate, priceFloorsConfigResolver, jsonMerger, jacksonMapper);
 
         final Account returnedAccount = Account.builder().build();
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(returnedAccount));
 
         // when
-        final Future<Account> accountFuture = target.getAccountById("123", timeout);
+        final Future<Account> accountFuture = enrichingApplicationSettings.getAccountById("123", timeout);
 
         // then
         assertThat(accountFuture).isSucceeded();
-        assertThat(accountFuture.result()).isEqualTo(returnedAccount);
+        assertThat(accountFuture.result()).isSameAs(returnedAccount);
 
         verify(delegate).getAccountById(eq("123"), eq(timeout));
     }
@@ -83,23 +78,24 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
     @Test
     public void getAccountByIdShouldOmitMergingWhenDefaultAccountIsEmpty() {
         // given
-        target = new EnrichingApplicationSettings(
+        enrichingApplicationSettings = new EnrichingApplicationSettings(
                 true,
                 0,
-                Account.builder().build(),
+                "{}",
                 delegate,
                 priceFloorsConfigResolver,
-                jsonMerger);
+                jsonMerger,
+                jacksonMapper);
 
         final Account returnedAccount = Account.builder().build();
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(returnedAccount));
 
         // when
-        final Future<Account> accountFuture = target.getAccountById("123", timeout);
+        final Future<Account> accountFuture = enrichingApplicationSettings.getAccountById("123", timeout);
 
         // then
         assertThat(accountFuture).isSucceeded();
-        assertThat(accountFuture.result()).isEqualTo(returnedAccount);
+        assertThat(accountFuture.result()).isSameAs(returnedAccount);
 
         verify(delegate).getAccountById(eq("123"), eq(timeout));
     }
@@ -107,35 +103,33 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
     @Test
     public void getAccountByIdShouldMergeAccountWithDefaultAccount() {
         // given
-        final AccountGdprConfig gdprConfig = AccountGdprConfig.builder()
-                .enabled(true)
-                .enabledForRequestType(EnabledForRequestType.of(false, null, null, null, null))
-                .build();
-        target = new EnrichingApplicationSettings(
+        enrichingApplicationSettings = new EnrichingApplicationSettings(
                 true,
                 0,
-                Account.builder()
-                        .auction(AccountAuctionConfig.builder().bannerCacheTtl(100).build())
-                        .privacy(AccountPrivacyConfig.builder().gdpr(gdprConfig).build())
-                        .build(),
+                "{\"auction\": {\"banner-cache-ttl\": 100},"
+                        + "\"privacy\": {\"gdpr\": {\"enabled\": true, \"channel-enabled\": {\"web\": false}}}}",
                 delegate,
                 priceFloorsConfigResolver,
-                jsonMerger);
+                jsonMerger,
+                jacksonMapper);
 
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(Account.builder()
                 .id("123")
                 .auction(AccountAuctionConfig.builder()
                         .videoCacheTtl(200)
                         .build())
-                .privacy(AccountPrivacyConfig.builder()
-                        .gdpr(AccountGdprConfig.builder()
+                .privacy(AccountPrivacyConfig.of(
+                        AccountGdprConfig.builder()
                                 .enabledForRequestType(EnabledForRequestType.of(true, null, null, null, null))
-                                .build())
-                        .build())
+                                .build(),
+                        null,
+                        null,
+                        null,
+                        null))
                 .build()));
 
         // when
-        final Future<Account> accountFuture = target.getAccountById("123", timeout);
+        final Future<Account> accountFuture = enrichingApplicationSettings.getAccountById("123", timeout);
 
         // then
         assertThat(accountFuture).succeededWith(Account.builder()
@@ -144,30 +138,34 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                         .bannerCacheTtl(100)
                         .videoCacheTtl(200)
                         .build())
-                .privacy(AccountPrivacyConfig.builder()
-                        .gdpr(AccountGdprConfig.builder()
+                .privacy(AccountPrivacyConfig.of(
+                        AccountGdprConfig.builder()
                                 .enabled(true)
                                 .enabledForRequestType(EnabledForRequestType.of(true, null, null, null, null))
-                                .build())
-                        .build())
+                                .build(),
+                        null,
+                        null,
+                        null,
+                        null))
                 .build());
     }
 
     @Test
     public void getAccountByIdShouldReturnDefaultAccountWhenDelegateFailed() {
         // given
-        target = new EnrichingApplicationSettings(
+        enrichingApplicationSettings = new EnrichingApplicationSettings(
                 false,
                 0,
-                Account.builder().auction(AccountAuctionConfig.builder().bannerCacheTtl(100).build()).build(),
+                "{\"auction\": {\"banner-cache-ttl\": 100}}",
                 delegate,
                 priceFloorsConfigResolver,
-                jsonMerger);
+                jsonMerger,
+                jacksonMapper);
 
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.failedFuture("Exception"));
 
         // when
-        final Future<Account> accountFuture = target.getAccountById("123", timeout);
+        final Future<Account> accountFuture = enrichingApplicationSettings.getAccountById("123", timeout);
 
         // then
         assertThat(accountFuture).succeededWith(Account.builder()
@@ -181,18 +179,19 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
     @Test
     public void getAccountByIdShouldReturnFailedFutureWhenDelegateFailedAndEnforceValidAccountIsTrue() {
         // given
-        target = new EnrichingApplicationSettings(
+        enrichingApplicationSettings = new EnrichingApplicationSettings(
                 true,
                 0,
-                Account.builder().auction(AccountAuctionConfig.builder().bannerCacheTtl(100).build()).build(),
+                "{\"auction\": {\"banner-cache-ttl\": 100}}",
                 delegate,
                 priceFloorsConfigResolver,
-                jsonMerger);
+                jsonMerger,
+                jacksonMapper);
 
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.failedFuture("Exception"));
 
         // when
-        final Future<Account> accountFuture = target.getAccountById("123", timeout);
+        final Future<Account> accountFuture = enrichingApplicationSettings.getAccountById("123", timeout);
 
         // then
         assertThat(accountFuture).isFailed();
@@ -201,18 +200,19 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
     @Test
     public void getAccountByIdShouldPassOnFailureWhenDefaultAccountIsEmpty() {
         // given
-        target = new EnrichingApplicationSettings(
+        enrichingApplicationSettings = new EnrichingApplicationSettings(
                 true,
                 0,
-                Account.builder().build(),
+                "{}",
                 delegate,
                 priceFloorsConfigResolver,
-                jsonMerger);
+                jsonMerger,
+                jacksonMapper);
 
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.failedFuture("Exception"));
 
         // when
-        final Future<Account> accountFuture = target.getAccountById("123", timeout);
+        final Future<Account> accountFuture = enrichingApplicationSettings.getAccountById("123", timeout);
 
         // then
         assertThat(accountFuture).isFailed();
@@ -221,17 +221,21 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
     @Test
     public void getAccountByIdShouldRemoveInvalidRulesFromAccountActivitiesConfiguration() {
         // given
-        target = new EnrichingApplicationSettings(
+        enrichingApplicationSettings = new EnrichingApplicationSettings(
                 true,
                 0,
-                Account.builder().build(),
+                "{}",
                 delegate,
                 priceFloorsConfigResolver,
-                jsonMerger);
+                jsonMerger,
+                jacksonMapper);
 
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(Account.builder()
-                .privacy(AccountPrivacyConfig.builder()
-                        .activities(Map.of(
+                .privacy(AccountPrivacyConfig.of(
+                        null,
+                        null,
+                        null,
+                        Map.of(
                                 Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
                                 Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, asList(
                                         AccountActivityComponentRuleConfig.of(null, null),
@@ -246,17 +250,20 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                                         AccountActivityComponentRuleConfig.of(
                                                 AccountActivityComponentRuleConfig.Condition.of(
                                                         singletonList(ComponentType.BIDDER), singletonList("bidder")),
-                                                null)))))
-                        .build())
+                                                null)))),
+                        null))
                 .build()));
 
         // when
-        final Future<Account> accountFuture = target.getAccountById("123", timeout);
+        final Future<Account> accountFuture = enrichingApplicationSettings.getAccountById("123", timeout);
 
         // then
         assertThat(accountFuture).succeededWith(Account.builder()
-                .privacy(AccountPrivacyConfig.builder()
-                        .activities(Map.of(
+                .privacy(AccountPrivacyConfig.of(
+                        null,
+                        null,
+                        null,
+                        Map.of(
                                 Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
                                 Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, asList(
                                         AccountActivityComponentRuleConfig.of(null, null),
@@ -266,8 +273,8 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                                         AccountActivityComponentRuleConfig.of(
                                                 AccountActivityComponentRuleConfig.Condition.of(
                                                         singletonList(ComponentType.BIDDER), singletonList("bidder")),
-                                                null)))))
-                        .build())
+                                                null)))),
+                        null))
                 .build());
     }
 }

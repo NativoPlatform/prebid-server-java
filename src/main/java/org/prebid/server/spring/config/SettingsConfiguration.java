@@ -20,7 +20,6 @@ import org.prebid.server.settings.FileApplicationSettings;
 import org.prebid.server.settings.HttpApplicationSettings;
 import org.prebid.server.settings.JdbcApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
-import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.service.HttpPeriodicRefreshService;
 import org.prebid.server.settings.service.JdbcPeriodicRefreshService;
 import org.prebid.server.spring.config.database.DatabaseConfiguration;
@@ -244,18 +243,20 @@ public class SettingsConfiguration {
         EnrichingApplicationSettings enrichingApplicationSettings(
                 @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
                 @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
-                Account defaultAccount,
+                @Value("${settings.default-account-config:#{null}}") String defaultAccountConfig,
                 CompositeApplicationSettings compositeApplicationSettings,
                 PriceFloorsConfigResolver priceFloorsConfigResolver,
-                JsonMerger jsonMerger) {
+                JsonMerger jsonMerger,
+                JacksonMapper jacksonMapper) {
 
             return new EnrichingApplicationSettings(
                     enforceValidAccount,
                     logSamplingRate,
-                    defaultAccount,
+                    defaultAccountConfig,
                     compositeApplicationSettings,
                     priceFloorsConfigResolver,
-                    jsonMerger);
+                    jsonMerger,
+                    jacksonMapper);
         }
     }
 

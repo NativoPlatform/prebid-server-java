@@ -29,14 +29,13 @@ import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.OrtbTypesResolver;
+import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.gpp.AuctionGppService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionStoredResult;
 import org.prebid.server.auction.model.debug.DebugContext;
-import org.prebid.server.auction.privacy.contextfactory.AuctionPrivacyContextFactory;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
-import org.prebid.server.cookie.CookieDeprecationService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
@@ -88,8 +87,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Mock
     private AuctionGppService auctionGppService;
     @Mock
-    private CookieDeprecationService cookieDeprecationService;
-    @Mock
     private ImplicitParametersExtractor paramsExtractor;
     @Mock
     private Ortb2ImplicitParametersResolver paramsResolver;
@@ -98,7 +95,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Mock
     private OrtbTypesResolver ortbTypesResolver;
     @Mock
-    private AuctionPrivacyContextFactory auctionPrivacyContextFactory;
+    private PrivacyEnforcementService privacyEnforcementService;
     @Mock
     private DebugResolver debugResolver;
 
@@ -167,7 +164,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(interstitialProcessor.process(any()))
                 .will(invocationOnMock -> invocationOnMock.getArgument(0));
 
-        given(auctionPrivacyContextFactory.contextFrom(any()))
+        given(privacyEnforcementService.contextFromBidRequest(any()))
                 .willReturn(Future.succeededFuture(defaultPrivacyContext));
 
         given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any()))
@@ -181,8 +178,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
         given(ortb2RequestFactory.activityInfrastructureFrom(any()))
                 .willReturn(Future.succeededFuture());
-        given(cookieDeprecationService.updateBidRequestDevice(any(), any()))
-                .will(invocationOnMock -> invocationOnMock.getArgument(0));
 
         target = new AuctionRequestFactory(
                 Integer.MAX_VALUE,
@@ -190,12 +185,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 storedRequestProcessor,
                 ortbVersionConversionManager,
                 auctionGppService,
-                cookieDeprecationService,
                 paramsExtractor,
                 paramsResolver,
                 interstitialProcessor,
                 ortbTypesResolver,
-                auctionPrivacyContextFactory,
+                privacyEnforcementService,
                 debugResolver,
                 jacksonMapper);
     }
@@ -224,12 +218,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 storedRequestProcessor,
                 ortbVersionConversionManager,
                 auctionGppService,
-                cookieDeprecationService,
                 paramsExtractor,
                 paramsResolver,
                 interstitialProcessor,
                 ortbTypesResolver,
-                auctionPrivacyContextFactory,
+                privacyEnforcementService,
                 debugResolver,
                 jacksonMapper);
 
@@ -696,7 +689,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                         .coppa(0)
                         .build(),
                 TcfContext.builder().geoInfo(geoInfo).build());
-        given(auctionPrivacyContextFactory.contextFrom(any()))
+        given(privacyEnforcementService.contextFromBidRequest(any()))
                 .willReturn(Future.succeededFuture(privacyContext));
 
         // when

@@ -244,12 +244,15 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                             .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.enforce))
                             .events(AccountEventsConfig.of(true))
                             .build())
-                    .privacy(AccountPrivacyConfig.builder()
-                            .gdpr(AccountGdprConfig.builder()
+                    .privacy(AccountPrivacyConfig.of(
+                            AccountGdprConfig.builder()
                                     .enabled(true)
                                     .enabledForRequestType(EnabledForRequestType.of(true, true, true, true, true))
-                                    .build())
-                            .build())
+                                    .build(),
+                            null,
+                            null,
+                            null,
+                            null))
                     .analytics(AccountAnalyticsConfig.of(
                             expectedEventsConfig,
                             singletonMap(

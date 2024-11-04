@@ -17,8 +17,6 @@ import java.util.List;
 @Value
 public class User {
 
-    public static final User EMPTY = User.builder().build();
-
     /**
      * Exchange-specific ID for the user.
      */
