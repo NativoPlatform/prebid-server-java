@@ -1,5 +1,5 @@
 {
-    "id": "LH9YV4gNHgcsB-C9Alyo0A",
+    "id": "mobile-test",
     "banner": {
         "format": [
             {
@@ -10,7 +10,7 @@
     },
     "ext": {
         "nativo": {
-            "placementID": 1462754
+            "placementId": 1462754
         }
     }
 }
